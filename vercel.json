@@ -1,1 +1,10 @@
-{"version":2,"functions":{"api/analyze.js":{"maxDuration":60}}}
+{
+  "version": 2,
+  "functions": {
+    "api/analyze.js": { "maxDuration": 60 },
+    "api/cron.js": { "maxDuration": 60 }
+  },
+  "crons": [
+    { "path": "/api/cron", "schedule": "0 */6 * * *" }
+  ]
+}
