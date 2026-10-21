@@ -3,6 +3,11 @@ const output = document.querySelector("#plan-output");
 const emptyState = document.querySelector("#empty-state");
 const subtitle = document.querySelector("#result-subtitle");
 const copyButton = document.querySelector("#copy-plan");
+const aiResearch = document.querySelector("#ai-research");
+const aiStatus = document.querySelector("#ai-status");
+const aiBadge = document.querySelector("#ai-badge");
+const aiBody = document.querySelector("#ai-body");
+const aiSources = document.querySelector("#ai-sources");
 
 const goalLabels = { awareness: "認知度を上げる", sales: "購入・申込を増やす", visits: "来店・訪問を増やす", leads: "問い合わせを増やす" };
 function escapeHTML(value) {
@@ -48,7 +53,7 @@ function makePlan(data) {
   '<article class="plan-card"><h3><span>◷</span> 24時間の実行スケジュール</h3><div class="schedule">'+schedule+'</div></article>'+
   '<div class="plan-grid"><article class="plan-card"><h3><span>↗</span> 成果を測る指標</h3><ul>'+metricList+'</ul><p style="margin-top:8px">公開前に現状値を記録し、24時間後に比較しましょう。</p></article><article class="plan-card"><h3><span>✦</span> 次に検証する仮説</h3><p>「'+escapeHTML(target)+'は、商品の特徴そのものより具体的な利用シーンに反応するのでは？」など、ひとつの仮説を決めて反応で検証します。</p></article></div>';
 }
-form.addEventListener("submit",function(event){
+form.addEventListener("submit", async function(event){
   event.preventDefault();
   const fd = new FormData(form);
   const product = String(fd.get("product") || "").trim();
@@ -59,7 +64,53 @@ form.addEventListener("submit",function(event){
   emptyState.hidden = true;
   subtitle.textContent = product+" の情報から、実行できる行動案を作成しました。";
   copyButton.disabled = false;
+  aiResearch.hidden = false;
+  aiBadge.textContent = "調査中";
+  aiBadge.className = "ai-badge loading";
+  aiStatus.textContent = "AIがウェブ上の情報を調べています。通常は少し時間がかかります。";
+  aiBody.textContent = "";
+  aiSources.innerHTML = "";
   document.querySelector("#results").scrollIntoView({behavior:"smooth",block:"start"});
+  try {
+    const response = await fetch("/api/analyze", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(data)
+    });
+    const result = await response.json();
+    if(!response.ok) throw new Error(result.error || "AI分析を開始できませんでした。");
+    aiBody.textContent = result.analysis || "分析結果がありません。";
+    aiBadge.textContent = "AI分析完了";
+    aiBadge.className = "ai-badge success";
+    const sources = Array.isArray(result.sources) ? result.sources : [];
+    if(sources.length) {
+      const title = document.createElement("h4");
+      title.textContent = "参照したウェブ情報";
+      aiSources.appendChild(title);
+      const list = document.createElement("ul");
+      sources.forEach(function(source) {
+        try {
+          const url = new URL(source.url);
+          if(url.protocol !== "https:" && url.protocol !== "http:") return;
+          const li = document.createElement("li");
+          const link = document.createElement("a");
+          link.href = url.href;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = source.title || url.hostname;
+          li.appendChild(link);
+          list.appendChild(li);
+        } catch (_) {}
+      });
+      aiSources.appendChild(list);
+    }
+    aiStatus.textContent = "ウェブ検索に基づく分析です。重要な判断の前に、リンク先の情報と日付を確認してください。";
+  } catch(error) {
+    aiBadge.textContent = "デモモード";
+    aiBadge.className = "ai-badge";
+    aiStatus.textContent = error.message || "AI分析を利用できません。";
+    aiBody.textContent = "下の24時間プランは利用できます。ウェブ検索付きAI分析を使うには、Vercelにデプロイし、サーバー環境変数 OPENAI_API_KEY を設定してください。APIキーをHTMLやJavaScriptに直接書かないでください。";
+  }
 });
 async function copyText(text) {
   if(navigator.clipboard && window.isSecureContext){await navigator.clipboard.writeText(text);return;}
