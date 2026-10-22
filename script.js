@@ -8,6 +8,7 @@ const aiStatus = document.querySelector("#ai-status");
 const aiBadge = document.querySelector("#ai-badge");
 const aiBody = document.querySelector("#ai-body");
 const aiSources = document.querySelector("#ai-sources");
+const MARKETING_API_URL = (window.MARKETING_API_URL || "").trim();
 
 const goalLabels = { awareness: "認知度を上げる", sales: "購入・申込を増やす", visits: "来店・訪問を増やす", leads: "問い合わせを増やす" };
 function escapeHTML(value) {
@@ -72,7 +73,7 @@ form.addEventListener("submit", async function(event){
   aiSources.innerHTML = "";
   document.querySelector("#results").scrollIntoView({behavior:"smooth",block:"start"});
   try {
-    const response = await fetch("/api/analyze", {
+    const response = await fetch(MARKETING_API_URL || "/api/analyze", {
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify(data)
@@ -109,7 +110,7 @@ form.addEventListener("submit", async function(event){
     aiBadge.textContent = "デモモード";
     aiBadge.className = "ai-badge";
     aiStatus.textContent = error.message || "AI分析を利用できません。";
-    aiBody.textContent = "下の24時間プランは利用できます。ウェブ検索付きAI分析を使うには、Vercelにデプロイし、サーバー環境変数 OPENAI_API_KEY を設定してください。APIキーをHTMLやJavaScriptに直接書かないでください。";
+    aiBody.textContent = "下の24時間プランは利用できます。ウェブ検索付きAI分析を使うには、Cloudflare Workerをデプロイし、config.js にWorkerのURLを設定してください。OPENAI_API_KEYはWorkerのSecretに保存し、HTMLやJavaScriptに直接書かないでください。";
   }
 });
 async function copyText(text) {
